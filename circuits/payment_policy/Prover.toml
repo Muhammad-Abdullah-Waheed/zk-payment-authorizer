@@ -1,0 +1,5 @@
+spending_limit = "5000"
+tx_nonce = "123"
+
+payment_amount = "3000"
+nullifier = "0x2b9f6ac4e48bde1097ddc877bf77a0412b45711c3cae07783fbc7789eedc1acc"

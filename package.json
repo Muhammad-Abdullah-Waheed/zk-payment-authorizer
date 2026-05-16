@@ -1,0 +1,39 @@
+{
+  "name": "zk-payment-authorizer",
+  "version": "1.0.0",
+  "description": "ZK-proven AI-agent payment authorization with private spending policy (Noir + Barretenberg + Solidity + Hardhat + React).",
+  "main": "scripts/server.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "node": "hardhat node",
+    "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "test": "hardhat test --network localhost",
+    "server": "node scripts/server.js",
+    "nullifier": "node scripts/compute_nullifier.js"
+  },
+  "keywords": [
+    "zk",
+    "zero-knowledge",
+    "noir",
+    "barretenberg",
+    "hardhat",
+    "solidity",
+    "ultrahonk",
+    "payment",
+    "ai-agent"
+  ],
+  "author": "Abdullah",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "@aztec/bb.js": "^0.87.4",
+    "@iarna/toml": "^2.2.5",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.28.6"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "ethers": "^6.16.0",
+    "express": "^5.2.1"
+  }
+}
