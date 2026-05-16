@@ -21,9 +21,9 @@ Two buttons in the UI:
 
 | Action | What happens | On-chain result |
 | --- | --- | --- |
-| **Authorize $30 payment** | Server submits a pre-generated proof for `limit=$50, payment=$30` to `PaymentAuthorizer.authorize(...)`. | `PaymentAuthorized(3000, 0x2b9f…1acc)` ✅ |
-| **Authorize $30 payment** (again) | Same proof, same nullifier. | `PaymentRejected("Replay attack detected")` ❌ |
-| **Try $80 payment** | Server runs `nargo execute` with `limit=$50, payment=$80`. Witness solver fails on `payment_amount <= spending_limit`. Server then submits a tampered proof to show the on-chain failure path. | Witness fails locally + `PaymentRejected("Invalid proof")` on-chain ❌ |
+| **Authorize $30 payment** | Server submits a pre-generated proof for `limit=$50, payment=$30` to `PaymentAuthorizer.authorize(...)`. | `PaymentAuthorized(3000, 0x2b9f…1acc)` |
+| **Authorize $30 payment** (again) | Same proof, same nullifier. | `PaymentRejected("Replay attack detected")`  |
+| **Try $80 payment** | Server runs `nargo execute` with `limit=$50, payment=$80`. Witness solver fails on `payment_amount <= spending_limit`. Server then submits a tampered proof to show the on-chain failure path. | Witness fails locally + `PaymentRejected("Invalid proof")` on-chain |
 
 Hardhat tests cover all four conditions:
 
