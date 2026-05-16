@@ -1,0 +1,108 @@
+{
+  "measuredAt": "2026-05-16T17:40:31.800Z",
+  "project": "zk-payment-authorizer",
+  "provingTarget": "evm-no-zk",
+  "toolchain": {
+    "nargo": "nargo version = 1.0.0-beta.21\nnoirc version = 1.0.0-beta.21+89a0f0faf3a5f1273c8ac4843b7877882437e277\n(git version hash: 89a0f0faf3a5f1273c8ac4843b7877882437e277, is dirty: false)",
+    "barretenberg": "5.0.0-nightly.20260324",
+    "solidity": "0.8.28",
+    "evmVersion": "cancun"
+  },
+  "environment": {
+    "hostname": "husnain-ThinkPad-13-2nd-Gen",
+    "platform": "linux",
+    "arch": "x64",
+    "cpuModel": "Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz",
+    "cpuCores": 4,
+    "totalMemGiB": 15.51
+  },
+  "proverTomlScenario": {
+    "spendingLimitCents": 5000,
+    "paymentAmountCents": 3000,
+    "description": "Valid $30 payment against $50 private limit"
+  },
+  "artifactSizesBytes": {
+    "proof": 6368,
+    "verificationKey": 1888,
+    "witnessGz": 259,
+    "acirJson": 23757,
+    "honkVerifierSolidity": 260514,
+    "proofCalldata": 6368
+  },
+  "zkOffChain": {
+    "nargoCompile": {
+      "wallSec": 0.857,
+      "maxRssMiB": null
+    },
+    "nargoExecute": {
+      "wallSec": 0.779,
+      "maxRssMiB": null
+    },
+    "bbWriteVk": {
+      "wallSec": 0.106,
+      "maxRssMiB": null
+    },
+    "bbProve": {
+      "wallSec": 0.46,
+      "maxRssMiB": null
+    },
+    "bbVerify": {
+      "wallSec": 0.038,
+      "maxRssMiB": null
+    }
+  },
+  "cryptography": {
+    "primitive": "Poseidon2 (noir-lang/poseidon v0.3.0)",
+    "nullifierComputeNodeMs": {
+      "runs": [
+        1758.29,
+        1468.75,
+        1688.92
+      ],
+      "avgMs": 1638.65
+    },
+    "circuitConstraints": [
+      "payment_amount <= spending_limit",
+      "nullifier == Poseidon2::hash([tx_nonce], 1)"
+    ]
+  },
+  "onChain": {
+    "network": "hardhat",
+    "chainId": 31337,
+    "deployGas": {
+      "HonkVerifier": "3177670",
+      "PaymentAuthorizer": "323356",
+      "total": "3501026"
+    },
+    "deployedBytecodeBytes": {
+      "HonkVerifier": 14455,
+      "PaymentAuthorizer": 1136
+    },
+    "authorizeGas": {
+      "validPayment": "681103",
+      "replayRejected": "270630",
+      "invalidProof": "270630"
+    },
+    "latencyMs": {
+      "honkVerifyStaticCall": 63
+    },
+    "throughput": {
+      "sequentialValidAuthorizes": 10,
+      "totalWallMs": 180,
+      "avgMsPerAuthorize": 18,
+      "throughputTxPerSec": 55.63,
+      "note": "Hardhat automine; not representative of mainnet block time."
+    },
+    "fees": {
+      "gasPriceWei": "1122303146",
+      "estimatedValidAuthorizeEth_at20gwei": "0.013622",
+      "estimatedValidAuthorizeEth_at30gwei": "0.020433"
+    },
+    "proofCalldataBytes": 6368
+  },
+  "limitations": [
+    "TPS measured on Hardhat with instant automine; not mainnet/L2 throughput.",
+    "Fee estimates use hypothetical 20/30 gwei; local Hardhat gas price is 0.",
+    "HonkVerifier deploy is one-time per circuit version; authorize gas is per payment."
+  ]
+}
