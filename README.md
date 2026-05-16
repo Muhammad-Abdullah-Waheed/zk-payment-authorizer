@@ -104,34 +104,77 @@ stores the nullifier on success, and emits `PaymentAuthorized` or
 
 ---
 
-## Running it from a fresh clone
+## Running it from a fresh Ubuntu machine
 
-> All commands assume an Ubuntu Linux host with Node.js 20+ and a working
-> `nargo` install (e.g. via [`noirup`](https://noir-lang.org/docs/getting_started/installation/)).
-> This repo was built and tested against `nargo 1.0.0-beta.21`.
+Every command below has been tested top-to-bottom on Ubuntu 22.04 / 24.04
+with `bash`. Copy-paste each block into a terminal.
 
-### 1. Install the matching `bb`
+### 0. System prerequisites
 
 ```bash
-# Make sure bbup is the latest version (it auto-resolves the right bb for your nargo)
+sudo apt update
+sudo apt install -y curl git build-essential
+```
+
+### 1. Install Node.js 20
+
+The easiest, sudo-free way is via `nvm`:
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+# Reload your shell so `nvm` is on PATH
+source ~/.bashrc
+
+nvm install 20
+nvm use 20
+node --version       # v20.x.x
+npm --version
+```
+
+(If you prefer the system package: `curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && sudo apt install -y nodejs`.)
+
+### 2. Install Noir (`nargo`)
+
+```bash
+curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
+source ~/.bashrc       # picks up the new PATH entry
+
+# Pin to the exact version this repo was built against
+noirup -v 1.0.0-beta.21
+
+nargo --version        # should print "nargo version = 1.0.0-beta.21"
+```
+
+### 3. Install Barretenberg (`bb`) — version auto-matched to your nargo
+
+```bash
 mkdir -p ~/.bb
 curl -sSL https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/next/barretenberg/bbup/bbup -o ~/.bb/bbup
 chmod +x ~/.bb/bbup
 
-# Install the bb release that matches your installed nargo
+# Resolves the right bb release for your installed nargo
 ~/.bb/bbup --noir-version current
+
+# Make bb available in this shell (the installer also appends this to ~/.bashrc)
 export PATH="$HOME/.bb:$PATH"
-bb --version          # 5.0.0-nightly.20260324 on nargo 1.0.0-beta.21
+bb --version           # 5.0.0-nightly.20260324 on nargo 1.0.0-beta.21
 ```
 
-### 2. Install JavaScript dependencies
+### 4. Clone the repository
+
+```bash
+git clone https://github.com/Muhammad-Abdullah-Waheed/zk-payment-authorizer.git
+cd zk-payment-authorizer
+```
+
+### 5. Install JavaScript dependencies
 
 ```bash
 npm install
 ( cd frontend && npm install )
 ```
 
-### 3. Generate the proof and Solidity verifier
+### 6. Generate the proof and Solidity verifier
 
 `circuits/payment_policy/target/` is gitignored, so this step is required
 on every fresh clone.
@@ -155,7 +198,7 @@ cd ../..
 To use a different `tx_nonce`, run `node scripts/compute_nullifier.js <nonce>`,
 copy the hex into `Prover.toml`, then re-run the block above.
 
-### 4. Compile Solidity, run the local chain, run tests
+### 7. Compile Solidity, run the local chain, run tests
 
 ```bash
 npx hardhat compile
@@ -170,7 +213,7 @@ npx hardhat test --network localhost
 
 After `deploy.js`, contract addresses live in `deployment.json`.
 
-### 5. Start the demo UI
+### 8. Start the demo UI
 
 ```bash
 # Terminal C — API server (talks to Hardhat via JSON-RPC):
@@ -222,6 +265,19 @@ Open <http://localhost:5173>.
                                                  ├─ nullifier replayed   ✗ → PaymentRejected
                                                  └─ verifier.verify(...) ✗ → PaymentRejected
 ```
+
+---
+
+## Troubleshooting
+
+| Symptom | Fix |
+| --- | --- |
+| Browser shows `PaymentRejected("Replay attack detected")` on the first `Authorize $30` click after a restart. | The nullifier from a previous session is still stored in the deployed `PaymentAuthorizer`. Redeploy: `npx hardhat run scripts/deploy.js --network localhost` and reload the tab. |
+| `bb: command not found` after step 3. | Open a new terminal (the installer wrote `export PATH="$HOME/.bb:$PATH"` to `~/.bashrc`) or rerun `export PATH="$HOME/.bb:$PATH"`. |
+| `nargo: command not found`. | Same idea — `noirup` adds `~/.nargo/bin` to your shell rc; reopen the shell or `export PATH="$HOME/.nargo/bin:$PATH"`. |
+| `Error HH600: Compilation failed … mcopy … paris`. | `hardhat.config.js` already pins `evmVersion: "cancun"`. If you forked or changed this, set it back. |
+| `EADDRINUSE: address already in use 8545 / 4000 / 5173`. | Another instance is still running. `lsof -i :8545` (or `:4000`, `:5173`) → `kill <pid>`. |
+| `nargo check` complains about `dep::std`. | You're on a Noir version newer than the legacy stdlib paths support. Pin to the exact version: `noirup -v 1.0.0-beta.21`. |
 
 ---
 
