@@ -5,7 +5,7 @@ const path = require("path");
 const { execFile, execFileSync } = require("child_process");
 const { ethers } = require("ethers");
 
-const { loadAll, tamperedProof } = require("./load_proof.js");
+const { loadAll, tamperedProof, PI } = require("./load_proof.js");
 
 const ROOT = path.join(__dirname, "..");
 const CIRCUIT_DIR = path.join(ROOT, "circuits", "payment_policy");
@@ -72,10 +72,19 @@ function attemptScenarioBProve() {
   const original = fs.readFileSync(proverPath, "utf8");
   fs.writeFileSync(backupPath, original);
 
-  const scenarioBToml = `spending_limit = "50"
+  const scenarioBToml = `spending_limit = "5000"
 tx_nonce = "123"
+window_start = "1700000000"
+window_end = "2000000000"
+approved_vendor_0 = "0x0000000000000000000000000000000000000000000000000000000000000001"
+approved_vendor_1 = "0x0000000000000000000000000000000000000000000000000000000000000002"
+approved_vendor_2 = "0x0000000000000000000000000000000000000000000000000000000000000003"
+approved_vendor_3 = "0x0000000000000000000000000000000000000000000000000000000000000004"
 
-payment_amount = "80"
+payment_amount = "8000"
+current_time = "1715000000"
+vendor = "0x0000000000000000000000000000000000000000000000000000000000000001"
+policy_commitment = "0x00b410c871f9cdff3e71cbadc6252cbdf93069e555deb69629caa3f0be96f0be"
 nullifier = "0x2b9f6ac4e48bde1097ddc877bf77a0412b45711c3cae07783fbc7789eedc1acc"
 `;
 
@@ -110,8 +119,11 @@ app.get("/api/state", (req, res) => {
       deployment,
       proofLength: (proof.length - 2) / 2,
       publicInputs,
-      paymentAmountWei: BigInt(publicInputs[0]).toString(),
-      nullifier: publicInputs[1],
+      paymentAmountWei: BigInt(publicInputs[PI.PAYMENT_AMOUNT]).toString(),
+      currentTime: BigInt(publicInputs[PI.CURRENT_TIME]).toString(),
+      vendor: publicInputs[PI.VENDOR],
+      policyCommitment: publicInputs[PI.POLICY_COMMITMENT],
+      nullifier: publicInputs[PI.NULLIFIER],
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -135,8 +147,11 @@ app.post("/api/scenarioA", async (req, res) => {
       event: result.event,
       args: result.args,
       publicInputs,
-      paymentAmount: BigInt(publicInputs[0]).toString(),
-      nullifier: publicInputs[1],
+      paymentAmount: BigInt(publicInputs[PI.PAYMENT_AMOUNT]).toString(),
+      currentTime: BigInt(publicInputs[PI.CURRENT_TIME]).toString(),
+      vendor: publicInputs[PI.VENDOR],
+      policyCommitment: publicInputs[PI.POLICY_COMMITMENT],
+      nullifier: publicInputs[PI.NULLIFIER],
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -161,7 +176,9 @@ app.post("/api/scenarioB", async (req, res) => {
         ).join("");
 
       const badProof = tamperedProof(proof);
-      const badInputs = [tamperedAmount, freshNullifier];
+      const badInputs = [...publicInputs];
+      badInputs[PI.PAYMENT_AMOUNT] = tamperedAmount;
+      badInputs[PI.NULLIFIER] = freshNullifier;
 
       const tx = await authorizer.authorize(badProof, badInputs);
       const receipt = await tx.wait();

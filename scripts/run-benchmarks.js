@@ -11,7 +11,7 @@ const { performance } = require("perf_hooks");
 const ROOT = path.join(__dirname, "..");
 const CIRCUIT_DIR = path.join(ROOT, "circuits", "payment_policy");
 const OUT_PATH = path.join(ROOT, "benchmark-results.json");
-const { loadAll, tamperedProof } = require("./load_proof.js");
+const { loadAll, tamperedProof, PI } = require("./load_proof.js");
 
 const HOME = process.env.HOME || "";
 const PATH_NARGO = fs.existsSync(path.join(HOME, ".nargo/bin/nargo"))
@@ -75,8 +75,13 @@ async function runOnChain(networkName) {
   const vRc = await vTx.deploymentTransaction().wait();
   const verifier = await vTx.getAddress();
 
+  const PolicyRegistry = await hre.ethers.getContractFactory("PolicyRegistry");
+  const registry = await PolicyRegistry.deploy();
+  await registry.waitForDeployment();
+  await (await registry.registerPolicy(publicInputs[PI.POLICY_COMMITMENT])).wait();
+
   const PaymentAuthorizer = await hre.ethers.getContractFactory("PaymentAuthorizer");
-  const aTx = await PaymentAuthorizer.deploy(verifier);
+  const aTx = await PaymentAuthorizer.deploy(verifier, await registry.getAddress());
   const aRc = await aTx.deploymentTransaction().wait();
   const authorizer = await aTx.getAddress();
 
@@ -94,10 +99,9 @@ async function runOnChain(networkName) {
   const replayRc = await replayTx.wait();
 
   const freshNullifier = "0x" + "b".repeat(64);
-  const badTx = await authorizerC.authorize(tamperedProof(proof), [
-    publicInputs[0],
-    freshNullifier,
-  ]);
+  const badInputs = [...publicInputs];
+  badInputs[PI.NULLIFIER] = freshNullifier;
+  const badTx = await authorizerC.authorize(tamperedProof(proof), badInputs);
   const badRc = await badTx.wait();
 
   const bytecodeHonk = await hre.ethers.provider.getCode(verifier);
@@ -108,8 +112,12 @@ async function runOnChain(networkName) {
   for (let i = 0; i < N; i++) {
     const nf =
       "0x" +
-      (BigInt(publicInputs[1]) + BigInt(400 + i)).toString(16).padStart(64, "0");
-    const tx = await authorizerC.authorize(proof, [publicInputs[0], nf]);
+      (BigInt(publicInputs[PI.NULLIFIER]) + BigInt(400 + i))
+        .toString(16)
+        .padStart(64, "0");
+    const batchInputs = [...publicInputs];
+    batchInputs[PI.NULLIFIER] = nf;
+    const tx = await authorizerC.authorize(proof, batchInputs);
     await tx.wait();
   }
   const batchMs = performance.now() - tBatch0;

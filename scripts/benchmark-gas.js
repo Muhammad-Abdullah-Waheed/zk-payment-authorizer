@@ -2,6 +2,7 @@
 const hre = require("hardhat");
 const path = require("path");
 const { loadAll, tamperedProof } = require("./load_proof.js");
+const { PI } = require("./policy.js");
 
 const CIRCUIT_DIR = path.join(__dirname, "..", "circuits", "payment_policy");
 
@@ -13,8 +14,14 @@ async function main() {
   const vRc = await vTx.deploymentTransaction().wait();
   const verifier = await vTx.getAddress();
 
+  const PolicyRegistry = await hre.ethers.getContractFactory("PolicyRegistry");
+  const registry = await PolicyRegistry.deploy();
+  await registry.waitForDeployment();
+
+  await (await registry.registerPolicy(publicInputs[PI.POLICY_COMMITMENT])).wait();
+
   const PaymentAuthorizer = await hre.ethers.getContractFactory("PaymentAuthorizer");
-  const aTx = await PaymentAuthorizer.deploy(verifier);
+  const aTx = await PaymentAuthorizer.deploy(verifier, await registry.getAddress());
   const aRc = await aTx.deploymentTransaction().wait();
   const authorizer = await aTx.getAddress();
 
@@ -36,10 +43,9 @@ async function main() {
   const replayRc = await replayTx.wait();
 
   const freshNullifier = "0x" + "b".repeat(64);
-  const badTx = await authorizerC.authorize(tamperedProof(proof), [
-    publicInputs[0],
-    freshNullifier,
-  ]);
+  const badInputs = [...publicInputs];
+  badInputs[PI.NULLIFIER] = freshNullifier;
+  const badTx = await authorizerC.authorize(tamperedProof(proof), badInputs);
   const badRc = await badTx.wait();
 
   const bytecodeHonk = await hre.ethers.provider.getCode(verifier);

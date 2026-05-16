@@ -10,6 +10,7 @@
     "test": "hardhat test --network localhost",
     "server": "node scripts/server.js",
     "nullifier": "node scripts/compute_nullifier.js",
+    "policy-commitment": "node scripts/compute_policy_commitment.js",
     "benchmark": "node scripts/run-benchmarks.js"
   },
   "keywords": [

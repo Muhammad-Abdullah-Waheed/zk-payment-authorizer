@@ -1,16 +1,9 @@
 const fs = require("fs");
 const path = require("path");
 const toml = require("@iarna/toml");
+const { publicInputsFromProver, PI } = require("./policy.js");
 
 const FIELD_SIZE = 32;
-
-function toHex32(bn) {
-  let h = BigInt(bn).toString(16);
-  if (h.length > 64) {
-    throw new Error("Value too large for bytes32: " + bn);
-  }
-  return "0x" + h.padStart(64, "0");
-}
 
 function readProverToml(circuitDir) {
   const proverPath = path.join(circuitDir, "Prover.toml");
@@ -22,12 +15,6 @@ function readProofBytes(circuitDir) {
   const proofPath = path.join(circuitDir, "target", "proof");
   const buf = fs.readFileSync(proofPath);
   return "0x" + buf.toString("hex");
-}
-
-function publicInputsFromProver(prover) {
-  const amount = BigInt(prover.payment_amount);
-  const nullifier = prover.nullifier;
-  return [toHex32(amount), nullifier];
 }
 
 function tamperedProof(hexProof) {
@@ -44,11 +31,11 @@ function loadAll(circuitDir) {
 }
 
 module.exports = {
-  toHex32,
   readProverToml,
   readProofBytes,
   publicInputsFromProver,
   tamperedProof,
   loadAll,
   FIELD_SIZE,
+  PI,
 };
