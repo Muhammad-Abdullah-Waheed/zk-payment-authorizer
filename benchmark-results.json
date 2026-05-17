@@ -63,8 +63,13 @@
     },
     "circuitConstraints": [
       "payment_amount <= spending_limit",
+      "window_start <= current_time && current_time <= window_end",
+      "vendor == approved_vendor_0 || ... || vendor == approved_vendor_3",
+      "policy_commitment == Poseidon2::hash([spending_limit, window_start, window_end, approved_vendor_0..3], 7)",
       "nullifier == Poseidon2::hash([tx_nonce], 1)"
-    ]
+    ],
+    "publicInputCount": 5,
+    "publicInputBytes": 160
   },
   "onChain": {
     "network": "hardhat",
@@ -103,6 +108,8 @@
   "limitations": [
     "TPS measured on Hardhat with instant automine; not mainnet/L2 throughput.",
     "Fee estimates use hypothetical 20/30 gwei; local Hardhat gas price is 0.",
-    "HonkVerifier deploy is one-time per circuit version; authorize gas is per payment."
+    "HonkVerifier and the Solidity verifier source must be regenerated when the circuit's public-input signature changes (e.g. when going from 2 to 5 public inputs).",
+    "The throughput loop reuses one proof while mutating publicInputs[PI.NULLIFIER]; the resulting tx/s reflects on-chain reject-path execution, not a sequence of fresh, valid Honk proofs.",
+    "On 2026-05-17 the circuit grew from 2 to 5 public inputs and a PolicyRegistry contract was added; rerun `npm run benchmark` for an apples-to-apples comparison."
   ]
 }

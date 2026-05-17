@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>ZK-AAPA — Zero-Knowledge AI Agent Payment Authorization</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #0a1020;
+    --bg-2: #121a2e;
+    --bg-3: #18213a;
+    --border: #25304d;
+    --fg: #e6edf3;
+    --fg-dim: #95a1ba;
+    --accent: #7aa2ff;
+    --accent-2: #6cffb5;
+    --warn: #ffb86b;
+    --bad: #ff7a85;
+    --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: radial-gradient(circle at 20% 0%, #16224a 0%, var(--bg) 55%); color: var(--fg); font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+
+  .deck {
+    width: 96vw;
+    max-width: 1200px;
+    height: 92vh;
+    max-height: 780px;
+    position: relative;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 35px 110px rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+  }
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 44px 56px 80px;
+    opacity: 0;
+    transform: translateX(40px);
+    transition: opacity .25s ease, transform .25s ease;
+    overflow-y: auto;
+    pointer-events: none;
+  }
+  .slide.active { opacity: 1; transform: translateX(0); pointer-events: auto; }
+
+  h1 { font-size: 42px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 10px; line-height: 1.1; }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 16px; }
+  h3 { font-size: 18px; margin-bottom: 8px; color: var(--accent); font-weight: 600; }
+  p, li { font-size: 16.5px; line-height: 1.55; color: var(--fg); }
+  p + p { margin-top: 8px; }
+  ul, ol { margin-left: 22px; }
+  li { margin-bottom: 4px; }
+
+  .sub { color: var(--fg-dim); font-size: 17px; margin-bottom: 22px; line-height: 1.55; }
+  .footnote { color: var(--fg-dim); font-size: 13.5px; margin-top: 18px; font-style: italic; }
+
+  .tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(122, 162, 255, .15);
+    color: var(--accent);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .tag.warn { background: rgba(255, 184, 107, .12); color: var(--warn); }
+  .tag.new { background: rgba(108, 255, 181, .12); color: var(--accent-2); }
+
+  pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--fg);
+    margin-top: 8px;
+  }
+  code { font-family: var(--mono); color: var(--accent); }
+  pre code { color: inherit; }
+  .ok { color: var(--accent-2); }
+  .bad { color: var(--bad); }
+  .warn { color: var(--warn); }
+  .strike { text-decoration: line-through; opacity: .55; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 10px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 14px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 12px; }
+
+  .card {
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .card h3 { margin-bottom: 6px; }
+  .card p, .card li { font-size: 14.5px; line-height: 1.5; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-top: 6px;
+  }
+  th, td {
+    text-align: left;
+    padding: 7px 9px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { color: var(--fg-dim); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; }
+  td code { font-size: 12.5px; }
+
+  .center { text-align: center; }
+  .kbd { font-family: var(--mono); background: var(--bg); border: 1px solid var(--border); padding: 2px 8px; border-radius: 5px; font-size: 12.5px; color: var(--fg-dim); }
+
+  nav {
+    position: absolute;
+    bottom: 16px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 28px;
+    color: var(--fg-dim);
+    font-size: 12.5px;
+    z-index: 10;
+  }
+  nav .left, nav .right { display: flex; align-items: center; gap: 10px; }
+  nav button {
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--fg);
+    font-size: 12.5px;
+    padding: 5px 11px;
+    cursor: pointer;
+  }
+  nav button:hover { background: var(--border); }
+  .counter { font-variant-numeric: tabular-nums; }
+  .deck-title { color: var(--fg-dim); font-size: 12px; letter-spacing: .04em; }
+
+  .progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgba(255, 255, 255, .04);
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4f81ff, #7aa2ff, #6cffb5);
+    transition: width .25s ease;
+  }
+
+  /* title slide */
+  .title-slide { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding-bottom: 100px; }
+  .title-slide .logo { font-family: var(--mono); color: var(--accent); font-size: 12px; letter-spacing: .4em; margin-bottom: 18px; }
+  .title-slide h1 { font-size: 52px; line-height: 1.06; margin-bottom: 12px; }
+  .title-slide .sub2 { font-size: 18px; color: var(--fg-dim); margin-bottom: 28px; }
+  .title-slide p.lead { font-size: 16px; color: var(--fg-dim); max-width: 760px; }
+  .title-slide .team {
+    margin-top: 36px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--fg-dim);
+    line-height: 1.7;
+  }
+  .title-slide .team strong { color: var(--fg); font-weight: 600; }
+
+  .pipeline {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.6;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    white-space: pre;
+    color: var(--fg);
+  }
+
+  /* metrics */
+  .metric { font-variant-numeric: tabular-nums; color: var(--accent-2); font-weight: 700; }
+  .metric.warn { color: var(--warn); }
+  .metric.bad { color: var(--bad); }
+  .metric-row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--border); }
+  .metric-row:last-child { border-bottom: 0; }
+  .metric-row .label { color: var(--fg-dim); font-size: 13.5px; }
+
+  /* delta tag */
+  .delta { display: inline-block; padding: 2px 8px; border-radius: 5px; font-family: var(--mono); font-size: 11px; letter-spacing: .04em; }
+  .delta.new   { background: rgba(108, 255, 181, .14); color: var(--accent-2); }
+  .delta.kept  { background: rgba(122, 162, 255, .14); color: var(--accent); }
+  .delta.cut   { background: rgba(255, 122, 133, .14); color: var(--bad); }
+
+  /* 4-step strip */
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 10px; }
+  .step {
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    position: relative;
+  }
+  .step .n { font-family: var(--mono); color: var(--accent); font-size: 12px; letter-spacing: .1em; }
+  .step h3 { color: var(--fg); font-size: 15px; margin: 4px 0 6px; }
+  .step p { font-size: 13.5px; color: var(--fg-dim); line-height: 1.5; }
+
+</style>
+</head>
+<body>
+  <div class="deck" id="deck">
+
+    <!-- 1. Title -->
+    <section class="slide title-slide">
+      <div class="logo">ZK · NOIR · ULTRA-HONK · SOLIDITY · REACT</div>
+      <h1>ZK-AAPA</h1>
+      <div class="sub2">Zero-Knowledge AI Agent Payment Authorization</div>
+      <p class="lead">
+        Blockchain Technology &mdash; Semester Project<br/>
+        Core domains: Blockchain &middot; Zero-Knowledge Proofs &middot; AI-Agent Security &middot; Privacy-Preserving Payments
+      </p>
+      <div class="team">
+        <strong>Husnain Ahmad</strong> &nbsp; bscs22109<br/>
+        <strong>Abdullah Waheed</strong> &nbsp; bscs22127<br/>
+        <strong>Rayyan Khalil</strong> &nbsp; bscs22149
+      </div>
+    </section>
+
+    <!-- 2. Motivation -->
+    <section class="slide">
+      <div class="tag">Motivation</div>
+      <h2>Why this problem matters</h2>
+      <p class="sub">
+        Autonomous AI agents increasingly perform value-bearing actions &mdash; bookings,
+        subscriptions, cloud provisioning, financial automation. Today&rsquo;s
+        authorization models store spending rules in plaintext or rely on centralized
+        controls, creating privacy, security, and auditability gaps.
+      </p>
+      <div class="card" style="background: rgba(122,162,255,.06); border-color: rgba(122,162,255,.25);">
+        <h3>Problem statement</h3>
+        <p style="font-size:16px;">
+          Given a <strong>private user spending policy</strong>, an autonomous AI agent
+          requesting a payment, and an on-chain verifier &mdash; how can the blockchain
+          confirm policy compliance <em>without revealing</em> spending limits, approved
+          vendors, time windows, or user secrets?
+        </p>
+      </div>
+      <p class="footnote">
+        Our answer: a Noir zkSNARK proves all checks pass; the chain learns only the
+        public claim (amount, vendor, time, policy hash, nullifier) plus &ldquo;valid&rdquo; or &ldquo;invalid&rdquo;.
+      </p>
+    </section>
+
+    <!-- 3. Proposed Solution -->
+    <section class="slide">
+      <div class="tag">Proposed solution</div>
+      <h2>High-level workflow</h2>
+      <p class="sub">ZK-AAPA issues UltraHonk proofs that a payment request complies with a private policy. The on-chain verifier checks the proof and the policy commitment but never learns policy details. Nullifiers prevent replay.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="n">STEP 1</div>
+          <h3>Policy setup</h3>
+          <p>Owner defines <code>spending_limit</code>, <code>approved_vendor_list</code>, and <code>allowed_time_window</code>. A Poseidon2 <strong>commitment hash</strong> is registered on-chain.</p>
+        </div>
+        <div class="step">
+          <div class="n">STEP 2</div>
+          <h3>Agent request</h3>
+          <p>The AI agent composes a payment request (<code>amount</code>, <code>vendor</code>, <code>timestamp</code>) and submits it to the prover with the policy as a private witness.</p>
+        </div>
+        <div class="step">
+          <div class="n">STEP 3</div>
+          <h3>Proof generation</h3>
+          <p>The Noir circuit produces an UltraHonk proof of compliance and a unique nullifier; <code>bb prove</code> serializes the bytes for Solidity.</p>
+        </div>
+        <div class="step">
+          <div class="n">STEP 4</div>
+          <h3>On-chain verification</h3>
+          <p><code>PaymentAuthorizer</code> checks registry, nullifier, then <code>HonkVerifier.verify</code>. Valid → authorization event; invalid → reasoned rejection.</p>
+        </div>
+      </div>
+      <p class="footnote">Same 4-step pipeline as the original proposal &mdash; implemented end to end on a local Hardhat chain.</p>
+    </section>
+
+    <!-- 4. System Architecture & Tech Stack -->
+    <section class="slide">
+      <div class="tag">System architecture &amp; technology stack</div>
+      <h2>Three layers, one repo</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>Layer 1 &mdash; Frontend</h3>
+          <p>React 19 + Vite. Five tabs: <em>Status, Policy setup, Agent simulator, Quick demos, History</em>. Talks to a Node API; signs txs through the simulator wallet.</p>
+        </div>
+        <div class="card">
+          <h3>Layer 2 &mdash; ZK proving engine</h3>
+          <p>Noir circuit compiled with <code>nargo 1.0.0-beta.21</code>. UltraHonk proofs generated by Barretenberg <code>bb 5.0.0-nightly.20260324</code> using the <code>noir-lang/poseidon</code> library.</p>
+        </div>
+        <div class="card">
+          <h3>Layer 3 &mdash; Blockchain</h3>
+          <p>Solidity 0.8.28 (Cancun) on Hardhat. Three contracts: <code>HonkVerifier</code>, <code>PolicyRegistry</code>, <code>PaymentAuthorizer</code>.</p>
+        </div>
+      </div>
+      <h3 style="margin-top:18px;">Implementation status vs original proposal</h3>
+      <table>
+        <thead><tr><th>Original plan</th><th>Status</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Plonk zkSNARKs (Barretenberg)</td><td><span class="delta new">UPGRADED</span></td><td>Plonk deprecated upstream; we use <strong>UltraHonk</strong>.</td></tr>
+          <tr><td>Ethereum Sepolia + MetaMask</td><td><span class="delta cut">DEFERRED</span></td><td>Runs on local Hardhat; backend signs with a dev key. Sepolia is a one-config-change away.</td></tr>
+          <tr><td>Hierarchical delegation (parent → agent → sub-agent)</td><td><span class="delta cut">FUTURE WORK</span></td><td>Not in v1 circuit; documented in slide 9.</td></tr>
+          <tr><td>Merkle membership for vendor list</td><td><span class="delta cut">SIMPLIFIED</span></td><td>4-slot whitelist with equality checks; Merkle is the natural scale-up.</td></tr>
+          <tr><td>Noir circuit, on-chain verifier, React frontend</td><td><span class="delta kept">SHIPPED</span></td><td>Working end-to-end PoC; 5 passing tests; published metrics.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 5. ZK Circuit Design -->
+    <section class="slide">
+      <div class="tag">ZK circuit design</div>
+      <h2>Core constraints (Noir / Poseidon2)</h2>
+      <p class="sub">Every check is enforced as a private constraint in <code>circuits/payment_policy/src/main.nr</code>. The verifier learns only that the checks passed.</p>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Spending limit <span class="delta new">v1</span></h3>
+          <p><code>payment_amount &le; spending_limit</code> via private witness arithmetic. <code>spending_limit</code> never exposed.</p>
+        </div>
+        <div class="card">
+          <h3>Time window <span class="delta new">v1</span></h3>
+          <p><code>window_start &le; current_time &le; window_end</code>. Window bounds remain private.</p>
+        </div>
+        <div class="card">
+          <h3>Vendor approval <span class="delta new">v1</span></h3>
+          <p>Equality against a 4-slot private whitelist: <code>vendor &isin; {v0..v3}</code>. Merkle membership is a future upgrade.</p>
+        </div>
+        <div class="card">
+          <h3>Policy commitment <span class="delta new">v1</span></h3>
+          <p><code>Poseidon2(limit, w_start, w_end, v0..v3) = policy_commitment</code> binds the proof to a specific (registered) policy.</p>
+        </div>
+        <div class="card" style="grid-column: span 2;">
+          <h3>Replay prevention <span class="delta kept">kept</span></h3>
+          <p><code>nullifier = Poseidon2(tx_nonce)</code>. The on-chain contract stores accepted nullifiers and rejects reuse.</p>
+        </div>
+      </div>
+      <p class="footnote">Hierarchical delegation (parent → agent → sub-agent) is on the roadmap; current circuit assumes one owner per policy.</p>
+    </section>
+
+    <!-- 6. Privacy Model & Security -->
+    <section class="slide">
+      <div class="tag">Privacy model &amp; security</div>
+      <h2>What stays private, what goes on chain</h2>
+      <div class="grid-2">
+        <div class="card" style="background: rgba(108, 255, 181, .05); border-color: rgba(108,255,181,.25);">
+          <h3 style="color: var(--accent-2);">Private (witness only)</h3>
+          <ul>
+            <li><code>spending_limit</code></li>
+            <li><code>tx_nonce</code> (agent / user secret)</li>
+            <li><code>window_start</code>, <code>window_end</code></li>
+            <li><code>approved_vendor_0 .. _3</code></li>
+          </ul>
+          <p class="footnote" style="margin-top:8px;">Used only during proof generation; never posted on-chain.</p>
+        </div>
+        <div class="card" style="background: rgba(122, 162, 255, .05); border-color: rgba(122,162,255,.25);">
+          <h3 style="color: var(--accent);">Public (on chain)</h3>
+          <ul>
+            <li><code>payment_amount</code></li>
+            <li><code>current_time</code></li>
+            <li><code>vendor</code> address</li>
+            <li><code>policy_commitment</code> (registered Poseidon2 hash)</li>
+            <li><code>nullifier</code></li>
+            <li><code>proof_bytes</code> (~6.4 KB)</li>
+          </ul>
+        </div>
+      </div>
+      <h3 style="margin-top: 16px;">Security guarantees</h3>
+      <div class="grid-4">
+        <div class="card"><h3 style="font-size:14px;">Privacy preservation</h3><p>Verifier learns only that the policy checks passed.</p></div>
+        <div class="card"><h3 style="font-size:14px;">Cryptographic authorization</h3><p>Enforcement via zk-proofs, not trust in middleware.</p></div>
+        <div class="card"><h3 style="font-size:14px;">Replay resistance</h3><p>Unique nullifiers stored on-chain.</p></div>
+        <div class="card"><h3 style="font-size:14px;">Auditability</h3><p>Every decision is a chain event with reason.</p></div>
+      </div>
+    </section>
+
+    <!-- 7. Novel contributions -->
+    <section class="slide">
+      <div class="tag">Novel contributions &amp; research value</div>
+      <h2>Why this PoC is more than a tutorial</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>End-to-end working prototype</h3>
+          <p>Noir circuit &rarr; UltraHonk proof &rarr; Solidity verifier &rarr; <code>PolicyRegistry</code> + <code>PaymentAuthorizer</code> &rarr; React UI. 5 passing tests, benchmarks, and reproducible install.</p>
+        </div>
+        <div class="card">
+          <h3>Time-bound private policies</h3>
+          <p>Window enforcement (<code>start &le; t &le; end</code>) inside the circuit; window bounds never leave the prover, defeating analysis of usage patterns.</p>
+        </div>
+        <div class="card">
+          <h3>Replay-resistant nullifiers</h3>
+          <p>Poseidon2 over a private nonce; stored on-chain. Unforgeable and unenumerable.</p>
+        </div>
+        <div class="card">
+          <h3>Policy commitment registry <span class="delta new">v1</span></h3>
+          <p>Separate <code>PolicyRegistry</code> contract whitelists Poseidon2 hashes of approved policies, decoupling policy life-cycle from payment authorization.</p>
+        </div>
+        <div class="card" style="grid-column: span 2;">
+          <h3>AI-agent focus</h3>
+          <p>Designed for autonomous agents interacting with financial systems &mdash; least-privilege spending, public audit trail, owner-controlled policy rotation.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. Smart contracts & demo -->
+    <section class="slide">
+      <div class="tag">Smart contracts &amp; frontend demo</div>
+      <h2>What runs on the chain &mdash; and how to break it</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Key contracts</h3>
+          <ul>
+            <li><code>PolicyRegistry.sol</code> &mdash; <code>registerPolicy(bytes32)</code>, <code>isRegistered(bytes32)</code>.</li>
+            <li><code>PaymentAuthorizer.sol</code> &mdash; <code>authorize(bytes proof, bytes32[] pubInputs)</code>. Four guards: well-formed → registered → not replayed → Honk-verified.</li>
+            <li><code>UltraPlonkVerifier.sol</code> &mdash; auto-generated <code>HonkVerifier</code> (optimized <code>evm-no-zk</code>).</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Frontend (Vite + React)</h3>
+          <ul>
+            <li><strong>Status</strong> &mdash; deployed addresses, registered policy, prebuilt proof.</li>
+            <li><strong>Policy setup</strong> &mdash; edit limit / window / vendors, preview &amp; register commitment.</li>
+            <li><strong>Agent simulator</strong> &mdash; choose amount / time / vendor, prove + authorize.</li>
+            <li><strong>Quick demos</strong> &mdash; 7 one-click failure scenarios.</li>
+            <li><strong>History</strong> &mdash; every tx with gas, event, reason.</li>
+          </ul>
+        </div>
+      </div>
+      <h3 style="margin-top: 18px;">Demo scenarios (server &amp; UI exercise the same code paths)</h3>
+      <table>
+        <thead><tr><th>Scenario</th><th>Trigger</th><th>Outcome</th></tr></thead>
+        <tbody>
+          <tr><td><code>valid30</code></td><td>$30, vendor #1, in-window</td><td class="ok">PaymentAuthorized ✓</td></tr>
+          <tr><td><code>replay</code></td><td>Resubmit the same proof</td><td class="bad">Replay attack detected</td></tr>
+          <tr><td><code>overLimit</code></td><td>$80 against $50 limit</td><td class="bad">Witness fails off-chain</td></tr>
+          <tr><td><code>badVendor</code></td><td>Vendor <code>0x…99</code></td><td class="bad">Witness fails off-chain</td></tr>
+          <tr><td><code>badTime</code></td><td><code>current_time &lt; window_start</code></td><td class="bad">Witness fails off-chain</td></tr>
+          <tr><td><code>tampered</code></td><td>Mutate proof byte, fresh nullifier</td><td class="bad">Invalid proof on-chain</td></tr>
+          <tr><td><code>unknownPolicy</code></td><td>Unregistered <code>policy_commitment</code></td><td class="bad">Unknown policy on-chain</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 9. Challenges & performance + future work -->
+    <section class="slide">
+      <div class="tag">Challenges, performance &amp; future work</div>
+      <h2>What was hard, what we measured, what&rsquo;s next</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3>Technical challenges</h3>
+          <ul>
+            <li>Noir API churn between releases (legacy <code>poseidon::bn254</code> → <code>Poseidon2</code>).</li>
+            <li>Matching <code>bb</code> &harr; <code>nargo</code> versions via <code>bb-versions.json</code>.</li>
+            <li>Cancun-only Solidity (<code>mcopy</code>) in the optimized verifier.</li>
+            <li>Keeping the public-input layout in sync across Noir, Solidity, and JS (<code>scripts/policy.js :: PI</code>).</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Performance snapshot &middot; <code>EVALUATION.md</code></h3>
+          <div class="metric-row"><span class="label">Proof generation (<code>bb prove</code>)</span><span class="metric">0.46 s</span></div>
+          <div class="metric-row"><span class="label">Native verify (<code>bb verify</code>)</span><span class="metric">0.04 s</span></div>
+          <div class="metric-row"><span class="label">EVM verify (staticCall)</span><span class="metric">63 ms</span></div>
+          <div class="metric-row"><span class="label">Valid <code>authorize()</code> gas</span><span class="metric">681,103</span></div>
+          <div class="metric-row"><span class="label">Reject paths gas</span><span class="metric warn">~30 k – 270 k</span></div>
+          <div class="metric-row"><span class="label">Proof size</span><span class="metric">6,368 B</span></div>
+          <div class="metric-row"><span class="label">Local Hardhat TPS</span><span class="metric">55.6 tx/s</span></div>
+        </div>
+      </div>
+      <h3 style="margin-top: 18px;">Future work</h3>
+      <ul>
+        <li>Recursive proof aggregation for batched authorizations and cheaper L1 settlement.</li>
+        <li><strong>Hierarchical delegation</strong> in the circuit (parent → agent → sub-agent constraints).</li>
+        <li>Merkle vendor membership for production-grade whitelists.</li>
+        <li>Browser-side proving (<code>@aztec/noir-js</code>) so the API stops shelling out to <code>nargo</code>.</li>
+        <li>Sepolia / L2 deployment + ERC-4337 paymaster integration; MetaMask UX.</li>
+      </ul>
+    </section>
+
+    <!-- 10. Conclusion -->
+    <section class="slide title-slide">
+      <div class="logo">CONCLUSION &middot; KEY TAKEAWAYS</div>
+      <h1 style="font-size: 40px;">Verify compliance.<br/>Never reveal the policy.</h1>
+      <p class="lead" style="font-size:17px; margin-top: 6px;">
+        ZK-AAPA pairs Noir UltraHonk circuits, a <code>PolicyRegistry</code>, and a
+        <code>PaymentAuthorizer</code> to deliver a reproducible blueprint for
+        privacy-preserving autonomous-agent payments.
+      </p>
+      <div class="grid-2" style="max-width: 760px; margin-top: 28px;">
+        <div class="card">
+          <h3>Core innovation</h3>
+          <p style="font-size: 14.5px;">Five private constraints, five public inputs, one on-chain decision &mdash; with full audit trail and replay defense.</p>
+        </div>
+        <div class="card">
+          <h3>Project value</h3>
+          <p style="font-size: 14.5px;">Bridges theoretical ZK constructions and applied agent-payment security, delivered as a teachable, testable repo.</p>
+        </div>
+      </div>
+      <div class="team" style="margin-top: 30px;">
+        <strong>Repository</strong> &nbsp; github.com/Muhammad-Abdullah-Waheed/zk-payment-authorizer<br/>
+        <strong>Live demo</strong> &nbsp; localhost:5173 (UI) &middot; localhost:4000 (API) &middot; localhost:8545 (Hardhat)
+      </div>
+      <div class="footnote" style="margin-top: 22px;">
+        Navigate with <span class="kbd">←</span> <span class="kbd">→</span> &middot;
+        <span class="kbd">F</span> fullscreen &middot;
+        <span class="kbd">P</span> print to PDF
+      </div>
+    </section>
+
+  </div>
+
+  <nav>
+    <div class="left">
+      <button id="prev">‹ Prev</button>
+      <button id="next">Next ›</button>
+    </div>
+    <div class="deck-title">ZK-AAPA &middot; Blockchain Technology &middot; Spring 2026</div>
+    <div class="right">
+      <span class="counter"><span id="cur">1</span> / <span id="total">10</span></span>
+    </div>
+  </nav>
+
+  <div class="progress"><div class="progress-fill" id="progress"></div></div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let idx = 0;
+
+  document.getElementById('total').textContent = total;
+
+  function show(i) {
+    idx = Math.max(0, Math.min(total - 1, i));
+    slides.forEach((s, j) => s.classList.toggle('active', j === idx));
+    document.getElementById('cur').textContent = idx + 1;
+    document.getElementById('progress').style.width = `${((idx + 1) / total) * 100}%`;
+    history.replaceState(null, '', `#${idx + 1}`);
+  }
+
+  const startFromHash = parseInt(location.hash.replace('#', ''), 10);
+  show(Number.isFinite(startFromHash) && startFromHash >= 1 ? startFromHash - 1 : 0);
+
+  document.getElementById('next').addEventListener('click', () => show(idx + 1));
+  document.getElementById('prev').addEventListener('click', () => show(idx - 1));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.closest('input, textarea')) return;
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault(); show(idx + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault(); show(idx - 1);
+    } else if (e.key.toLowerCase() === 'f') {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen();
+    } else if (e.key.toLowerCase() === 'p') {
+      window.print();
+    } else if (e.key === 'Home') { show(0); }
+      else if (e.key === 'End') { show(total - 1); }
+  });
+</script>
+</body>
+</html>

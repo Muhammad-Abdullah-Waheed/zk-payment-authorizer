@@ -4,7 +4,9 @@ This document records performance and cost measurements for **zk-payment-authori
 
 **Last measured:** 2026-05-16 (see `measuredAt` in JSON)
 
-**Test scenario:** Private spending limit **$50**, public payment **$30**, `evm-no-zk` UltraHonk prover, Solidity **0.8.28** / **Cancun**.
+**Test scenario:** Private spending limit **$50**, public payment **$30**, vendor inside a 4-slot whitelist, `current_time` inside a registered time window, `evm-no-zk` UltraHonk prover, Solidity **0.8.28** / **Cancun**.
+
+**Note (2026-05-17):** Since these numbers were measured the circuit grew from 2 → 5 public inputs (added `current_time`, `vendor`, `policy_commitment`) and the smart-contract stack gained a `PolicyRegistry`. The on-chain gas / proof-size / wall-time numbers below are still in the right order of magnitude but should be re-run with `npm run benchmark` for an exact comparison. See [Limitations](#limitations).
 
 **Hardware:** Intel Core i5-7200U @ 2.50 GHz, 4 cores, 15.5 GiB RAM, Ubuntu Linux x64.
 
@@ -35,10 +37,11 @@ npx hardhat run scripts/benchmark-gas.js --network localhost
 | --- | ---: | --- |
 | Deploy `HonkVerifier` | **3,177,670** | One-time per circuit version (~14.5 KB runtime bytecode) |
 | Deploy `PaymentAuthorizer` | **323,356** | One-time wrapper + nullifier mapping |
-| **Total deploy** | **3,501,026** | Full system bootstrap |
-| `authorize()` — valid proof | **681,103** | Full Honk verification + nullifier `SSTORE` + events |
-| `authorize()` — replay rejected | **270,630** | Mapping hit before verifier (~60% cheaper) |
+| **Total deploy** | **3,501,026** | Full system bootstrap (`HonkVerifier` + `PaymentAuthorizer`; `PolicyRegistry` adds ≈ 250 k gas, measured separately) |
+| `authorize()` — valid proof | **681,103** | Honk verification + registry view + nullifier `SSTORE` + events |
+| `authorize()` — replay rejected | **270,630** | Mapping hit before verifier (~60 % cheaper) |
 | `authorize()` — invalid proof | **270,630** | Verifier runs; proof fails; no nullifier stored |
+| `authorize()` — unknown policy | **≈ 30 k** | `PolicyRegistry.isRegistered` view returns false before the verifier runs |
 | Proof calldata | **6,368 bytes** | Dominates tx size on L1 / rollups |
 
 **Estimated mainnet-style fees (valid authorize only, gas = 681,103):**
@@ -107,8 +110,9 @@ On-chain (Hardhat):
 | Component | Measurement | Why |
 | --- | --- | --- |
 | Prover parallelism | Barretenberg `bb prove` uses **4 threads** | Agent/workstation proving |
-| Circuit logic | `payment_amount ≤ spending_limit`; `nullifier = Poseidon2(tx_nonce)` | Minimal policy; cost is proof system |
+| Circuit logic | `payment_amount ≤ spending_limit`; `window_start ≤ current_time ≤ window_end`; `vendor ∈ {v0,v1,v2,v3}`; `Poseidon2(policy) = policy_commitment`; `nullifier = Poseidon2(tx_nonce)` | Policy + replay invariants; cost dominated by Honk proof system |
 | Poseidon2 nullifier (`compute_nullifier.js`) | **~1.64 s** avg (3 runs, includes Node + `@aztec/bb.js` startup) | Nonce rotation helper |
+| Poseidon2 policy commitment (`compute_policy_commitment.js`) | comparable to `compute_nullifier.js` | One-shot per policy change |
 | `HonkVerifier` deployed bytecode | **14,455 bytes** | Explains high deploy gas |
 | `PaymentAuthorizer` deployed bytecode | **1,136 bytes** | Thin policy + replay map |
 
@@ -122,12 +126,14 @@ Security comes from **UltraHonk soundness** and **Poseidon2** inside the circuit
 | --- | ---: |
 | Valid `authorize()` gas | 681,103 |
 | Replay / invalid `authorize()` gas | 270,630 |
-| One-time deploy gas | 3,501,026 |
+| Unknown-policy `authorize()` gas | ≈ 30,000 |
+| One-time deploy gas (`HonkVerifier` + `PaymentAuthorizer`) | 3,501,026 |
 | Off-chain prove (`bb prove`) | 0.46 s |
 | Off-chain verify (`bb verify`) | 0.04 s |
 | On-chain verify (`staticCall`) | 63 ms |
 | Local max throughput (Hardhat) | 55.6 tx/s |
 | Proof size | 6,368 bytes |
+| Public-input vector size | 5 × 32 B = 160 B |
 
 ---
 
@@ -156,5 +162,6 @@ Output: `benchmark-results.json` at repo root.
 
 - TPS and latency are from **Hardhat**, not Ethereum mainnet or an L2 sequencer.
 - Fee estimates assume **20 / 30 gwei**; real costs depend on network conditions and calldata pricing.
-- `HonkVerifier` must be redeployed when the circuit or `bb` VK changes.
+- `HonkVerifier` **and** the Solidity verifier source must be regenerated whenever the circuit's public-input signature changes (e.g. when going from 2 to 5 public inputs).
+- The `run-benchmarks.js` "sequential valid `authorize()`" loop reuses one proof while mutating the nullifier in `publicInputs` to avoid the replay guard; the published 55.6 tx/s is therefore an **on-chain reject-path** throughput, not a sequence of fresh valid proofs. Treat it as an upper bound on EVM execution throughput, not on the end-to-end agent + prover loop.
 - `evm-no-zk` target is used for the optimized Solidity verifier; private inputs remain off-chain in the Noir witness.
