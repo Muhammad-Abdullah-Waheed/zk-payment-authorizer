@@ -223,7 +223,8 @@ the on-chain verifier never sees them.
 | `npm run server` | `node scripts/server.js` (API on :4000) |
 | `npm run nullifier` | `node scripts/compute_nullifier.js <tx_nonce>` |
 | `npm run policy-commitment` | `node scripts/compute_policy_commitment.js …` |
-| `npm run benchmark` | Writes `benchmark-results.json` |
+| `npm run benchmark` | Writes `benchmark-results.json` (single proof, all reject paths) |
+| `npm run benchmark-1000` | Writes `benchmark-results-1000.json` — averages over 1,000 distinct valid proofs (`--proofs N` to change count) |
 
 ### HTTP API (Express, default port 4000)
 

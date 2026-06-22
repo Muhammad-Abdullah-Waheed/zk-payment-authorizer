@@ -809,18 +809,20 @@
         </div>
         <div class="card">
           <h3>Performance snapshot &middot; <code>EVALUATION.md</code></h3>
+          <p style="font-size:12px; color:var(--fg-dim); margin:-2px 0 6px;">Averages over <strong>1,000 distinct valid
+              proofs</strong></p>
           <div class="metric-row"><span class="label">Proof generation (<code>bb prove</code>)</span><span
-              class="metric">0.46 s</span></div>
+              class="metric">0.45 s</span></div>
           <div class="metric-row"><span class="label">Native verify (<code>bb verify</code>)</span><span
-              class="metric">0.04 s</span></div>
-          <div class="metric-row"><span class="label">EVM verify (staticCall)</span><span class="metric">63 ms</span>
+              class="metric">0.07 s</span></div>
+          <div class="metric-row"><span class="label">EVM verify (staticCall)</span><span class="metric">43 ms</span>
           </div>
           <div class="metric-row"><span class="label">Valid <code>authorize()</code> gas</span><span
-              class="metric">681,103</span></div>
-          <div class="metric-row"><span class="label">Reject paths gas</span><span class="metric warn">~30 k – 270
+              class="metric">691,012</span></div>
+          <div class="metric-row"><span class="label">Reject paths gas</span><span class="metric warn">~30 k – 273
               k</span></div>
           <div class="metric-row"><span class="label">Proof size</span><span class="metric">6,368 B</span></div>
-          <div class="metric-row"><span class="label">Local Hardhat TPS</span><span class="metric">55.6 tx/s</span>
+          <div class="metric-row"><span class="label">Valid-path Hardhat TPS</span><span class="metric">11.35 tx/s</span>
           </div>
         </div>
       </div>

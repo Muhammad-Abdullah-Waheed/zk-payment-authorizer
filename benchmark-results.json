@@ -1,5 +1,5 @@
 {
-  "measuredAt": "2026-05-16T17:40:31.800Z",
+  "measuredAt": "2026-06-21T19:05:11.707Z",
   "project": "zk-payment-authorizer",
   "provingTarget": "evm-no-zk",
   "toolchain": {
@@ -9,12 +9,12 @@
     "evmVersion": "cancun"
   },
   "environment": {
-    "hostname": "husnain-ThinkPad-13-2nd-Gen",
+    "hostname": "DESKTOP-NG6ESS3",
     "platform": "linux",
     "arch": "x64",
-    "cpuModel": "Intel(R) Core(TM) i5-7200U CPU @ 2.50GHz",
+    "cpuModel": "AMD Ryzen 3 PRO 3300U w/ Radeon Vega Mobile Gfx",
     "cpuCores": 4,
-    "totalMemGiB": 15.51
+    "totalMemGiB": 6.72
   },
   "proverTomlScenario": {
     "spendingLimitCents": 5000,
@@ -24,30 +24,30 @@
   "artifactSizesBytes": {
     "proof": 6368,
     "verificationKey": 1888,
-    "witnessGz": 259,
-    "acirJson": 23757,
-    "honkVerifierSolidity": 260514,
+    "witnessGz": 913,
+    "acirJson": 27295,
+    "honkVerifierSolidity": 265153,
     "proofCalldata": 6368
   },
   "zkOffChain": {
     "nargoCompile": {
-      "wallSec": 0.857,
+      "wallSec": 0.683,
       "maxRssMiB": null
     },
     "nargoExecute": {
-      "wallSec": 0.779,
+      "wallSec": 0.555,
       "maxRssMiB": null
     },
     "bbWriteVk": {
-      "wallSec": 0.106,
+      "wallSec": 0.262,
       "maxRssMiB": null
     },
     "bbProve": {
-      "wallSec": 0.46,
+      "wallSec": 0.45,
       "maxRssMiB": null
     },
     "bbVerify": {
-      "wallSec": 0.038,
+      "wallSec": 0.081,
       "maxRssMiB": null
     }
   },
@@ -55,61 +55,54 @@
     "primitive": "Poseidon2 (noir-lang/poseidon v0.3.0)",
     "nullifierComputeNodeMs": {
       "runs": [
-        1758.29,
-        1468.75,
-        1688.92
+        5323.36,
+        3516.43,
+        4211.68
       ],
-      "avgMs": 1638.65
+      "avgMs": 4350.49
     },
     "circuitConstraints": [
       "payment_amount <= spending_limit",
-      "window_start <= current_time && current_time <= window_end",
-      "vendor == approved_vendor_0 || ... || vendor == approved_vendor_3",
-      "policy_commitment == Poseidon2::hash([spending_limit, window_start, window_end, approved_vendor_0..3], 7)",
       "nullifier == Poseidon2::hash([tx_nonce], 1)"
-    ],
-    "publicInputCount": 5,
-    "publicInputBytes": 160
+    ]
   },
   "onChain": {
     "network": "hardhat",
     "chainId": 31337,
     "deployGas": {
-      "HonkVerifier": "3177670",
-      "PaymentAuthorizer": "323356",
-      "total": "3501026"
+      "HonkVerifier": "3177682",
+      "PaymentAuthorizer": "432494",
+      "total": "3610176"
     },
     "deployedBytecodeBytes": {
       "HonkVerifier": 14455,
-      "PaymentAuthorizer": 1136
+      "PaymentAuthorizer": 1533
     },
     "authorizeGas": {
-      "validPayment": "681103",
-      "replayRejected": "270630",
-      "invalidProof": "270630"
+      "validPayment": "691067",
+      "replayRejected": "272700",
+      "invalidProof": "272700"
     },
     "latencyMs": {
-      "honkVerifyStaticCall": 63
+      "honkVerifyStaticCall": 116
     },
     "throughput": {
       "sequentialValidAuthorizes": 10,
-      "totalWallMs": 180,
-      "avgMsPerAuthorize": 18,
-      "throughputTxPerSec": 55.63,
+      "totalWallMs": 811,
+      "avgMsPerAuthorize": 81,
+      "throughputTxPerSec": 12.34,
       "note": "Hardhat automine; not representative of mainnet block time."
     },
     "fees": {
-      "gasPriceWei": "1122303146",
-      "estimatedValidAuthorizeEth_at20gwei": "0.013622",
-      "estimatedValidAuthorizeEth_at30gwei": "0.020433"
+      "gasPriceWei": "1093787105",
+      "estimatedValidAuthorizeEth_at20gwei": "0.013821",
+      "estimatedValidAuthorizeEth_at30gwei": "0.020732"
     },
     "proofCalldataBytes": 6368
   },
   "limitations": [
     "TPS measured on Hardhat with instant automine; not mainnet/L2 throughput.",
     "Fee estimates use hypothetical 20/30 gwei; local Hardhat gas price is 0.",
-    "HonkVerifier and the Solidity verifier source must be regenerated when the circuit's public-input signature changes (e.g. when going from 2 to 5 public inputs).",
-    "The throughput loop reuses one proof while mutating publicInputs[PI.NULLIFIER]; the resulting tx/s reflects on-chain reject-path execution, not a sequence of fresh, valid Honk proofs.",
-    "On 2026-05-17 the circuit grew from 2 to 5 public inputs and a PolicyRegistry contract was added; rerun `npm run benchmark` for an apples-to-apples comparison."
+    "HonkVerifier deploy is one-time per circuit version; authorize gas is per payment."
   ]
 }

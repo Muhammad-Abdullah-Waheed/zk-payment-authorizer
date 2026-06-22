@@ -11,7 +11,8 @@
     "server": "node scripts/server.js",
     "nullifier": "node scripts/compute_nullifier.js",
     "policy-commitment": "node scripts/compute_policy_commitment.js",
-    "benchmark": "node scripts/run-benchmarks.js"
+    "benchmark": "node scripts/run-benchmarks.js",
+    "benchmark-1000": "node scripts/run-benchmarks-1000.js"
   },
   "keywords": [
     "zk",

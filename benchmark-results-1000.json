@@ -1,0 +1,130 @@
+{
+  "measuredAt": "2026-06-21T19:03:22.685Z",
+  "project": "zk-payment-authorizer",
+  "evaluation": "average over 1000 distinct valid proofs",
+  "proofsRequested": 1000,
+  "provingTarget": "evm-no-zk",
+  "toolchain": {
+    "nargo": "nargo version = 1.0.0-beta.21\nnoirc version = 1.0.0-beta.21+89a0f0faf3a5f1273c8ac4843b7877882437e277\n(git version hash: 89a0f0faf3a5f1273c8ac4843b7877882437e277, is dirty: false)",
+    "barretenberg": "5.0.0-nightly.20260324",
+    "solidity": "0.8.28",
+    "evmVersion": "cancun"
+  },
+  "environment": {
+    "hostname": "DESKTOP-NG6ESS3",
+    "platform": "linux",
+    "arch": "x64",
+    "cpuModel": "AMD Ryzen 3 PRO 3300U w/ Radeon Vega Mobile Gfx",
+    "cpuCores": 4,
+    "totalMemGiB": 6.72
+  },
+  "scenario": {
+    "spendingLimitCents": 5000,
+    "paymentAmountCents": 3000,
+    "description": "Valid $30 payment against $50 private limit; tx_nonce rotated per proof"
+  },
+  "artifactSizesBytes": {
+    "verificationKey": 1888,
+    "acirJson": 27295,
+    "honkVerifierSolidity": 265153
+  },
+  "offChain": {
+    "wallSec": 1582.258,
+    "perProofMs": {
+      "nargoExecuteMs": {
+        "count": 1000,
+        "avg": 1006.764,
+        "min": 553.945,
+        "max": 3108.961,
+        "p50": 891.797,
+        "p95": 1793.623,
+        "stddev": 332.576
+      },
+      "bbProveMs": {
+        "count": 1000,
+        "avg": 448.821,
+        "min": 261.442,
+        "max": 1643.882,
+        "p50": 410.719,
+        "p95": 669.531,
+        "stddev": 123.247
+      },
+      "bbVerifyMs": {
+        "count": 1000,
+        "avg": 73.07,
+        "min": 36.135,
+        "max": 686.163,
+        "p50": 63.644,
+        "p95": 127.68,
+        "stddev": 42.912
+      },
+      "proofBytes": {
+        "count": 1000,
+        "avg": 6368,
+        "min": 6368,
+        "max": 6368,
+        "p50": 6368,
+        "p95": 6368,
+        "stddev": 0
+      }
+    }
+  },
+  "onChain": {
+    "network": "hardhat",
+    "chainId": 31337,
+    "proofsSubmitted": 1000,
+    "authorizedCount": 1000,
+    "rejectedCount": 0,
+    "deployGas": {
+      "HonkVerifier": "3177682",
+      "PaymentAuthorizer": "432494",
+      "total": "3610176"
+    },
+    "deployedBytecodeBytes": {
+      "HonkVerifier": 14455,
+      "PaymentAuthorizer": 1533
+    },
+    "authorizeGas": {
+      "count": 1000,
+      "avg": "691012",
+      "min": "690767",
+      "max": "691211",
+      "p50": "691019",
+      "p95": "691103"
+    },
+    "authorizeLatencyMs": {
+      "count": 1000,
+      "avg": 44.244,
+      "min": 18.341,
+      "max": 165.443,
+      "p50": 37.091,
+      "p95": 96.345,
+      "stddev": 23.05
+    },
+    "honkVerifyStaticCallMs": {
+      "count": 1000,
+      "avg": 43.127,
+      "min": 15.788,
+      "max": 154.099,
+      "p50": 36.099,
+      "p95": 91.427,
+      "stddev": 22.372
+    },
+    "throughput": {
+      "totalWallMs": 88102,
+      "avgMsPerAuthorize": 88,
+      "throughputTxPerSec": 11.35,
+      "note": "Hardhat automine; distinct VALID proofs (no replay/reject shortcut). Not mainnet block time."
+    },
+    "fees": {
+      "avgGas": "691012",
+      "estimatedAuthorizeEth_at20gwei": "0.013820",
+      "estimatedAuthorizeEth_at30gwei": "0.020730"
+    }
+  },
+  "notes": [
+    "Every one of the 1000 proofs is freshly generated with a unique tx_nonce, so all authorize() calls take the VALID path (PaymentAuthorized) — this is the true per-proof gas/latency, not the reject path.",
+    "Timing uses performance.now() around each child process (cross-platform); max-RSS is not sampled here.",
+    "Hardhat automine inflates throughput vs. a real network bound by block time / gas market."
+  ]
+}
